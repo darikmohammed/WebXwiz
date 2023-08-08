@@ -12,6 +12,11 @@ const typeDefs = `
   type Query {
     getAllUsers: [User!]!
   }
+
+  type Mutation {
+    signup(email: String!, password: String!): AuthPayload!
+    login(email: String!, password: String!): AuthPayload!
+  }
 `;
 
 export default typeDefs;
