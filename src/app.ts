@@ -13,7 +13,6 @@ const server = new ApolloServer({
   resolvers,
 });
 
-
 startStandaloneServer(server).then(({url})=>{
   console.log(`🚀 Server ready at ${url}`);
 });
