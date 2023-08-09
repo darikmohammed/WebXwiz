@@ -32,7 +32,24 @@ const resolvers = {
         token,
         user,
       }
-    }
+    },
+    changePassword: async(_:any, {oldPassword, newPassword}:{ oldPassword:string, newPassword:string}, {userId}: {userId: String}) => {
+      if(!userId) throw new Error('Not authenticated.')
+
+      const user = await User.findOne({userId});
+      if (!user) {
+        throw new Error('User does not exist.');
+      }
+      
+      const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+      if (!isPasswordValid) {
+        throw new Error('Invalid password.');
+      }
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      await user.save();
+      return true;
+    },
   }
 };
 

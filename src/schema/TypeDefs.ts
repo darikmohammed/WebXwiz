@@ -15,6 +15,7 @@ const typeDefs = `
 
   type Mutation {
     signup(email: String!, password: String!): AuthPayload!
+    changePassword(oldPassword: String!, newPassword: String!): Boolean!
   }
 `;
 
