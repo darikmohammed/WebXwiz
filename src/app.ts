@@ -18,7 +18,7 @@ const server = new ApolloServer<BaseContext>({
 
 startStandaloneServer(server, {
   context: async ({ req }: { req: any }) => {
-    const token = req.headers.authorization || '';
+    const token:string = req.headers.authorization || '';
     let userId = null;
 
     if (!req.body.query.includes('signup') && !req.body.query.includes('login')) {
