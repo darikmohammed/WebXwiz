@@ -85,7 +85,7 @@ const resolvers = {
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if(!isPasswordValid) throw new Error("Email or password is incorrect.");
-      const token = jwt.sign({userId: user._id}, process.env.SECRET_KEY as string);
+      const token = jwt.sign({userId: user._id, requireTwoFactor: user.twoFactorEnabled}, process.env.SECRET_KEY as string);
       if(!user.twoFactorEnabled) {
         return {
           token,
@@ -112,8 +112,13 @@ const resolvers = {
         encoding: 'base32',
         token: code,
       });
-      // if(!verified) throw new Error("Invalid two factor code.");
-      return verified;
+      if(!verified) throw new Error("Invalid two factor code.");
+      const token = jwt.sign({userId: user._id, requireTwoFactor: false}, process.env.SECRET_KEY as string);
+
+      return {
+        token,
+        user
+      }
     },
   }
 };

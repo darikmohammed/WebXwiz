@@ -21,7 +21,7 @@ const typeDefs = `
     enableTwoFactor: String!
     disableTwoFactor: Boolean!
     login(email: String!, password: String!): AuthPayload!
-    verifyTwoFactorCode(code: String!): Boolean!
+    verifyTwoFactorCode(code: String!): AuthPayload!
   }
 `;
 
