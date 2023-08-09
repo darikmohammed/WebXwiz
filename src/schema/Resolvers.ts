@@ -29,7 +29,7 @@ const resolvers = {
         secretKey: jwt.sign({email}, process.env.SECRET_KEY as string),
       });
       await user.save();
-      const token = jwt.sign({userId: user._id}, process.env.SECRET_KEY as string);
+      const token = jwt.sign({userId: user._id, requireTwoFactor: false}, process.env.SECRET_KEY as string);
       return {
         token,
         user,
