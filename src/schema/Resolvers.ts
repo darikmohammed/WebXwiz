@@ -7,11 +7,11 @@ import qrcode from 'qrcode'
 
 const resolvers = {
   Query: {
-    getAllUsers: () => {
-      return [{
-        id: 1,
-        email: 'john@gmail.com',
-      }]
+    getUserProfile: async (_:any, __:any, {userId}: {userId: string}) => {
+      if(!userId) throw new Error('Not authenticated.')
+      const user = await User.findOne({_id: userId});
+      if(!user) throw new Error("User does not exist.");
+      return user;
     },
   },
 

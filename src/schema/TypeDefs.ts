@@ -12,7 +12,7 @@ const typeDefs = `
   }
 
   type Query {
-    getAllUsers: [User!]!
+    getUserProfile: User!
   }
 
   type Mutation {
