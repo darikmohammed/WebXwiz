@@ -81,6 +81,12 @@ git clone https://github.com/darikmohammed/WebXwiz.git
 cd WebXwiz
 ```
 
+- Make sure you are in the correct branch
+
+```sh
+git checkout branch-name
+```
+
 ### Install
 
 Install project dependencies:
