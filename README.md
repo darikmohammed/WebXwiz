@@ -89,6 +89,13 @@ Install project dependencies:
 npm install
 ```
 
+### Set up environment variables: 
+Create a `.env` file in the root directory and add the following: 
+
+```sh
+MONGO_URI = "your-mongodb-atlas-uri"
+SECRET_KEY = 'your-secret-key'
+```
 ### Usage
 
 To run the project, execute the following command:
