@@ -25,7 +25,7 @@ const resolvers = {
 
       const user = new User({
         email,
-        hashedPassword,
+        password: hashedPassword,
         secretKey: jwt.sign({email}, process.env.SECRET_KEY as string),
       });
       await user.save();
@@ -80,7 +80,7 @@ const resolvers = {
       return true;
     },
     login: async(_:any, {email, password}:{email:string, password:string}) => {
-      const user = await User.findOne({email});
+      const user = await User.findOne({email});      
       if(!user) throw new Error("Email or password is incorrect.");
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
