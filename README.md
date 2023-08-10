@@ -77,7 +77,7 @@ cd WebXwiz
 - Using HTTPS
 
 ```sh
-git clone git@github.com:darikmohammed/WebXwiz.git
+git clone https://github.com/darikmohammed/WebXwiz.git
 cd WebXwiz
 ```
 
