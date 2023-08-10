@@ -4,13 +4,22 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import speakeasy from 'speakeasy';
 import qrcode from 'qrcode'
+import { GraphQLError } from 'graphql';
 
 const resolvers = {
   Query: {
     getUserProfile: async (_:any, __:any, {userId}: {userId: string}) => {
-      if(!userId) throw new Error('Not authenticated.')
+      if(!userId) throw new GraphQLError('You are not authorized to perform this action.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
       const user = await User.findOne({_id: userId});
-      if(!user) throw new Error("User does not exist.");
+      if(!user) throw new GraphQLError('User does not exist.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
       return user;
     },
   },
@@ -19,17 +28,29 @@ const resolvers = {
     signup: async (_:any, {email, password}:{email:string, password:string}) => {
       const existingUser = await User.findOne({email});
       if (existingUser) {
-        throw new Error('User already exists.');
+        throw new GraphQLError('User already exists.', {
+          extensions: {
+            code: 'DUPLICATE',
+          },
+        });
+      }
+
+      if (password.length < 8) {
+        throw new GraphQLError('Password must be at least 8 characters long.', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+          },
+        });
       }
       const hashedPassword = await bcrypt.hash(password, 10);
-
       const user = new User({
         email,
         password: hashedPassword,
         secretKey: jwt.sign({email}, process.env.SECRET_KEY as string),
       });
+
       await user.save();
-      const token = jwt.sign({userId: user._id, requireTwoFactor: false}, process.env.SECRET_KEY as string);
+      const token = jwt.sign({userId: user._id, requireTwoFactor: true}, process.env.SECRET_KEY as string);
       return {
         token,
         user,
@@ -87,10 +108,19 @@ const resolvers = {
     },
     login: async(_:any, {email, password}:{email:string, password:string}) => {
       const user = await User.findOne({email});      
-      if(!user) throw new Error("Email or password is incorrect.");
-
+      if(!user) throw new GraphQLError("Incorrect Email or Password.", {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+      
       const isPasswordValid = await bcrypt.compare(password, user.password);
-      if(!isPasswordValid) throw new Error("Email or password is incorrect.");
+      if(!isPasswordValid) throw new GraphQLError("Incorrect Email or Password", {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+      
       const token = jwt.sign({userId: user._id, requireTwoFactor: user.twoFactorEnabled}, process.env.SECRET_KEY as string);
       if(!user.twoFactorEnabled) {
         return {

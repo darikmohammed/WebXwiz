@@ -6,7 +6,7 @@ const typeDefs = `
   }
 
   type AuthPayload {
-    token: String!
+    token: String
     user: User!
     qrCode: String
   }
@@ -21,8 +21,8 @@ const typeDefs = `
     enableTwoFactor: AuthPayload!
     disableTwoFactor: AuthPayload!
     login(email: String!, password: String!): AuthPayload!
-    verifyTwoFactorCode(code: String!): AuthPayload!
-    generateQrCode: AuthPayload!
+    verifyTwoFactorCode(code: String!): Boolean!
+    generateQrCode: String!
   }
 `;
 
