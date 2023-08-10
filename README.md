@@ -62,15 +62,23 @@
 ### Prerequisites
 
 - Node.js
-- npm or yarn
+- npm
 
 ### Setup
 
 Clone this repository to your desired folder:
 
+- Using SSH
+
 ```sh
-git clone git@github.com:youraccount/your-project.git
-cd your-project
+git clone git@github.com:darikmohammed/WebXwiz.git
+cd WebXwiz
+```
+- Using HTTPS
+
+```sh
+git clone https://github.com/darikmohammed/WebXwiz.git
+cd WebXwiz
 ```
 
 ### Install
@@ -85,8 +93,15 @@ npm install
 
 To run the project, execute the following command:
 
+- Run build file
 ```sh
-npm start
+npm run build
+npm run start
+```
+
+- Run development 
+```sh
+npm run dev
 ```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
