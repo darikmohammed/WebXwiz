@@ -10,7 +10,7 @@ export interface IUser extends Document {
 const UserSchema: Schema = new Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String },
-  secretKey: { type: String, required: true },
+  secretKey: { type: String, required: false },
   twoFactorEnabled: { type: Boolean, default: false },
 });
 

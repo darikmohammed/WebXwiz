@@ -46,7 +46,6 @@ const resolvers = {
       const user = new User({
         email,
         password: hashedPassword,
-        secretKey: jwt.sign({email}, process.env.SECRET_KEY as string),
       });
 
       await user.save();
@@ -107,19 +106,39 @@ const resolvers = {
       await user.save();
       return true;
     },
-    enableTwoFactor: async(_:any, __:any, {userId}: {userId: string}) => {
-      if(!userId) throw new Error('Not authenticated.')
-      
-      const user = await User.findOne({_id: userId});
-      if(!user) throw new Error("User does not exist.");
-      if(user.twoFactorEnabled) throw new Error("Two factor already enabled.");
-
-      user.twoFactorEnabled = true;
-      await user.save();
-      const secret = speakeasy.generateSecret({
-        name: user.secretKey
+    enableTwoFactor: async(_:any, __:any, {userId,requireTwoFactor }: {userId: string, requireTwoFactor: boolean}) => {
+      if(!userId) throw new GraphQLError('You are not authorized to perform this action.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
       });
-      // console.log("secret:", secret);
+
+      if(requireTwoFactor) throw new GraphQLError('Need to verify two factor code.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      const user = await User.findOne({_id: userId});
+      if (!user) {
+        throw new GraphQLError('User does not exist.', {
+          extensions: {
+            code: 'FORBIDDEN',
+          },
+        });
+
+      }
+      if(user.twoFactorEnabled) throw new GraphQLError('Two factor already enabled.', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+        },
+      });
+
+      const secret = speakeasy.generateSecret();
+      user.twoFactorEnabled = true;
+      user.secretKey = secret.base32;
+
+      await user.save();
       
       const token = jwt.sign({userId: user._id, requireTwoFactor: true}, process.env.SECRET_KEY as string);
 
@@ -127,11 +146,31 @@ const resolvers = {
 
       return {token, user, qrCode};
     },
-    disableTwoFactor: async(_:any, __:any, {userId}: {userId: string}) => {
-      if(!userId) throw new Error('Not authenticated.')
+    disableTwoFactor: async(_:any, __:any, {userId, requireTwoFactor}: {userId: string, requireTwoFactor: boolean}) => {
+      if(!userId) throw new GraphQLError('You are not authorized to perform this action.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      if(requireTwoFactor) throw new GraphQLError('Need to verify two factor code.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
       const user = await User.findOne({_id: userId});
-      if(!user) throw new Error("User does not exist.");
-      if(!user.twoFactorEnabled) throw new Error("Two factor already disabled.");
+      if(!user) throw new GraphQLError('User does not exist.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      if(!user.twoFactorEnabled) throw new GraphQLError('Two factor already disabled.', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+        },
+      });
 
       user.twoFactorEnabled = false;
       await user.save();
@@ -162,24 +201,49 @@ const resolvers = {
           user,
         }
       }
-      const secret = speakeasy.generateSecret({
-        name: user.secretKey
-      });
+      const secret = speakeasy.generateSecret();
+      user.secretKey = secret.base32
+      await user.save();
       const qrCode = qrcode.toDataURL(secret.otpauth_url as string);
       return {token, user, qrCode};
     },
-    verifyTwoFactorCode: async(_:any, {code}:{code: string}, {userId}: {userId: string}) => {
-      if(!userId) throw new Error('Not authenticated.')
+    verifyTwoFactorCode: async(_:any, {code}:{code: string}, {userId,requireTwoFactor }: {userId: string, requireTwoFactor:boolean}) => {
+      if(!userId) throw new GraphQLError('You are not authorized to perform this action.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      if(!requireTwoFactor) throw new GraphQLError('Can not verify a code for authenticated user.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
       const user = await User.findOne({_id: userId});
-      if(!user) throw new Error("User does not exist.");
-      if(!user.twoFactorEnabled) throw new Error("Two factor already disabled.");
+      if(!user) throw new GraphQLError('User does not exist.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      if(!user.twoFactorEnabled) throw new GraphQLError('Two factor not enabled.', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+        },
+      });
 
       const verified = speakeasy.totp.verify({
         secret: user.secretKey,
         encoding: 'base32',
         token: code,
       });
-      if(!verified) throw new Error("Invalid two factor code.");
+      if(!verified) throw new GraphQLError('Invalid code.', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+        },
+      });
+
       const token = jwt.sign({userId: user._id, requireTwoFactor: false}, process.env.SECRET_KEY as string);
 
       return {
@@ -187,18 +251,37 @@ const resolvers = {
         user
       }
     },
-    generateQrCode: async (_:any, __:any, {userId}: {userId: string}) => {
-      if(!userId) throw new Error('Not authenticated.')
+    generateQrCode: async (_:any, __:any, {userId, requireTwoFactor}: {userId: string, requireTwoFactor: boolean}) => {
+      if(!userId) throw new GraphQLError('You are not authorized to perform this action.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      if(!requireTwoFactor) throw new GraphQLError('Can not generate a qr code for authenticated user.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
       
       const user = await User.findOne({_id: userId});
-      if(!user) throw new Error("User does not exist.");
-      if(!user.twoFactorEnabled) throw new Error("Two factor authorizataion is disabled.");
-      const secret = speakeasy.generateSecret({
-        name: user.secretKey
-      });      
-      const token = jwt.sign({userId: user._id, requireTwoFactor: true}, process.env.SECRET_KEY as string);
+      if(!user) throw new GraphQLError('User does not exist.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+
+      if(!user.twoFactorEnabled) throw new GraphQLError('Two factor already disabled.', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+        },
+      });
+
+      const secret = speakeasy.generateSecret();   
+      user.secretKey = secret.base32
+      await user.save()   
       const qrCode = await qrcode.toDataURL(secret.otpauth_url as string);
-      return {token, user, qrCode};
+      return qrCode;
     },
   }
 };
