@@ -1,10 +1,8 @@
 import jwt from 'jsonwebtoken'
 
-const secretKey = process.env.SECRET_KEY as string
-
-const getUserIdFromToken = (token: string) => {
+const getUserIdFromToken = (token: string) => {  
   try {
-    const decoded = jwt.verify(token, secretKey) as { userId: string, requireTwoFactor: boolean }
+    const decoded = jwt.verify(token, process.env.SECRET_KEY as string) as {userId: string, requireTwoFactor: boolean}
     if (decoded.requireTwoFactor) throw new Error('Two factor authentication required.')
     return decoded.userId
   } catch (error) {

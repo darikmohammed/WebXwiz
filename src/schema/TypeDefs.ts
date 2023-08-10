@@ -18,10 +18,11 @@ const typeDefs = `
   type Mutation {
     signup(email: String!, password: String!): AuthPayload!
     changePassword(oldPassword: String!, newPassword: String!): Boolean!
-    enableTwoFactor: String!
-    disableTwoFactor: Boolean!
+    enableTwoFactor: AuthPayload!
+    disableTwoFactor: AuthPayload!
     login(email: String!, password: String!): AuthPayload!
     verifyTwoFactorCode(code: String!): AuthPayload!
+    generateQrCode: AuthPayload!
   }
 `;
 

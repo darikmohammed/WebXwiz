@@ -54,6 +54,7 @@ const resolvers = {
     },
     enableTwoFactor: async(_:any, __:any, {userId}: {userId: string}) => {
       if(!userId) throw new Error('Not authenticated.')
+      
       const user = await User.findOne({_id: userId});
       if(!user) throw new Error("User does not exist.");
       if(user.twoFactorEnabled) throw new Error("Two factor already enabled.");
@@ -63,11 +64,13 @@ const resolvers = {
       const secret = speakeasy.generateSecret({
         name: user.secretKey
       });
+      // console.log("secret:", secret);
+      
+      const token = jwt.sign({userId: user._id, requireTwoFactor: true}, process.env.SECRET_KEY as string);
 
-      qrcode.toDataURL(secret.otpauth_url as string, (err, data) => {
-        if(err) throw new Error("Error generating QR code.");
-        return data;
-      });
+      const qrCode = await qrcode.toDataURL(secret.otpauth_url as string);
+
+      return {token, user, qrCode};
     },
     disableTwoFactor: async(_:any, __:any, {userId}: {userId: string}) => {
       if(!userId) throw new Error('Not authenticated.')
@@ -77,7 +80,10 @@ const resolvers = {
 
       user.twoFactorEnabled = false;
       await user.save();
-      return true;
+
+      const token = jwt.sign({userId: user._id, requireTwoFactor: false}, process.env.SECRET_KEY as string);
+
+      return {token, user};
     },
     login: async(_:any, {email, password}:{email:string, password:string}) => {
       const user = await User.findOne({email});      
@@ -95,11 +101,8 @@ const resolvers = {
       const secret = speakeasy.generateSecret({
         name: user.secretKey
       });
-      qrcode.toDataURL(secret.otpauth_url as string, (err, data) => {
-        if(err) throw new Error("Error generating QR code.");
-        return {token,user,data};
-      }
-      );
+      const qrCode = qrcode.toDataURL(secret.otpauth_url as string);
+      return {token, user, qrCode};
     },
     verifyTwoFactorCode: async(_:any, {code}:{code: string}, {userId}: {userId: string}) => {
       if(!userId) throw new Error('Not authenticated.')
@@ -119,6 +122,19 @@ const resolvers = {
         token,
         user
       }
+    },
+    generateQrCode: async (_:any, __:any, {userId}: {userId: string}) => {
+      if(!userId) throw new Error('Not authenticated.')
+      
+      const user = await User.findOne({_id: userId});
+      if(!user) throw new Error("User does not exist.");
+      if(!user.twoFactorEnabled) throw new Error("Two factor authorizataion is disabled.");
+      const secret = speakeasy.generateSecret({
+        name: user.secretKey
+      });      
+      const token = jwt.sign({userId: user._id, requireTwoFactor: true}, process.env.SECRET_KEY as string);
+      const qrCode = await qrcode.toDataURL(secret.otpauth_url as string);
+      return {token, user, qrCode};
     },
   }
 };
