@@ -50,24 +50,58 @@ const resolvers = {
       });
 
       await user.save();
-      const token = jwt.sign({userId: user._id, requireTwoFactor: true}, process.env.SECRET_KEY as string);
+      const token = jwt.sign({userId: user._id, requireTwoFactor: false}, process.env.SECRET_KEY as string);
       return {
         token,
         user,
       }
     },
-    changePassword: async(_:any, {oldPassword, newPassword}:{ oldPassword:string, newPassword:string}, {userId}: {userId: string}) => {
-      if(!userId) throw new Error('Not authenticated.')
+    changePassword: async(_:any, {oldPassword, newPassword}:{ oldPassword:string, newPassword:string}, {userId, requireTwoFactor}: {userId: string, requireTwoFactor: boolean}) => {
+      if(requireTwoFactor) throw new GraphQLError('Need to verify two factor code.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
+      
+      if(!userId) throw new GraphQLError('You are not authorized to perform this action.', {
+        extensions: {
+          code: 'FORBIDDEN',
+        },
+      });
 
       const user = await User.findOne({_id: userId});
       if (!user) {
-        throw new Error('User does not exist.');
+        throw new GraphQLError('User does not exist.', {
+          extensions: {
+            code: 'FORBIDDEN',
+          },
+        });
+
       }
 
       const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
       if (!isPasswordValid) {
-        throw new Error('Invalid password.');
+        throw new GraphQLError('Invalid password.', {
+          extensions: {
+            code: 'FORBIDDEN',
+          },
+        });
       }
+
+      if(newPassword === oldPassword) throw new GraphQLError('New password must be different from old password.', {
+        extensions: {
+          code: 'BAD_USER_INPUT',
+        },
+      });
+
+      if (newPassword.length < 8) {
+        throw new GraphQLError('Password must be at least 8 characters long.', {
+          extensions: {
+            code: 'BAD_USER_INPUT',
+          },
+        });
+      }
+      
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       user.password = hashedPassword;
       await user.save();
